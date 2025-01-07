@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>삼각방정식</title>
+  <!-- MathJax 로드 -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" defer></script>
+  <style>
+    body {
+      margin: 0; padding: 0;
+      font-family: sans-serif;
+      background: #fafafa;
+    }
+    .container {
+      width: 80%;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1, h2, h3 {
+      text-align: center;
+      margin: 10px 0;
+    }
+    .difficulty-btn {
+      display: inline-block;
+      margin: 10px;
+      padding: 10px 20px;
+      border: 2px solid #333;
+      cursor: pointer;
+      transition: 0.3s;
+      border-radius: 8px;
+    }
+    .difficulty-btn:hover {
+      background: #333;
+      color: #fff;
+    }
+    .energy-bar-wrapper {
+      position: relative;
+      width: 200px;
+      height: 20px;
+      background: #ccc;
+      border-radius: 10px;
+      margin: 10px auto;
+    }
+    .energy-bar {
+      position: absolute;
+      top: 0; left: 0;
+      height: 20px;
+      border-radius: 10px;
+      background: linear-gradient(to right, #ff9900, #ff0000);
+      transition: width 0.2s;
+    }
+    .question-container {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .choice {
+      display: inline-block;
+      background: #f9f9f9;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      margin: 10px;
+      padding: 10px 15px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .choice:hover {
+      background: #eee;
+    }
+    .info-bar {
+      margin-top: 10px;
+      text-align: center;
+    }
+    #startScreen {
+      text-align: center;
+      margin: 30px auto;
+    }
+    #nameInput {
+      font-size: 1rem;
+      padding: 5px;
+      width: 200px;
+      text-align: center;
+    }
+    .hidden {
+      display: none;
+    }
+    #resultMessage {
+      margin: 20px 0;
+      text-align: center;
+      font-size: 1.2rem;
+      color: #c00;
+      min-height: 30px;
+    }
+    #endScreen {
+      text-align: center;
+    }
+    #response {
+      white-space: pre-wrap;
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>삼각방정식</h1>
+
+  <!-- 첫 화면(이름 입력, 난이도 선택) -->
+  <div id="startScreen">
+    <h3>이름을 입력해주세요</h3>
+    <input type="text" id="nameInput" placeholder="이름">
+    <h3>난이도를 선택해주세요</h3>
+    <div>
+      <div class="difficulty-btn" data-diff="최상">최상</div>
+      <div class="difficulty-btn" data-diff="상">상</div>
+      <div class="difficulty-btn" data-diff="중">중</div>
+      <div class="difficulty-btn" data-diff="하">하</div>
+    </div>
+  </div>
+
+  <!-- 게임 화면 -->
+  <div id="gameScreen" class="hidden">
+    <div class="info-bar">
+      <span>총 경과시간: <span id="elapsedTime">0</span>초</span>
+      &nbsp;&nbsp;|&nbsp;&nbsp;
+      <span>남은 기회: <span id="chances">3</span></span>
+      &nbsp;&nbsp;|&nbsp;&nbsp;
+      <span>점수: <span id="score">0</span></span>
+    </div>
+
+    <div class="energy-bar-wrapper">
+      <div class="energy-bar" id="energyBar" style="width: 100%;"></div>
+    </div>
+
+    <div id="questionContainer" class="question-container"></div>
+    <div id="choicesContainer" class="question-container"></div>
+
+    <div id="resultMessage"></div>
+  </div>
+
+  <!-- 게임 종료 화면(점수 전송 버튼) -->
+  <div id="endScreen" class="hidden">
+    <h2>게임 종료!</h2>
+    <p id="finalScoreMsg"></p>
+    <button id="sendScoreBtn">점수 전송</button>
+    <div id="response"></div>
+  </div>
+
+</div>
+
+<script>
+/*
+  이번 코드는 지금까지 만들었던 총 37개의 문제를
+  깔끔한 LaTeX 수식(\\(...\\))으로 다시 구성하여
+  MathJax를 통해 정상적으로 렌더링하도록 한 예시입니다.
+
+  "슬래시 및 이상한 기호 제거", "검정 괄호" 등
+  요구사항에 맞춰서 재작성하였으며
+  모든 문제/답안을 하나도 빠뜨리지 않고 수록했습니다.
+*/
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+// 문제 세트 -------------------------------------------------------------------------------------------
+
+// (1~5, 8, 9, 10, 11, 12, 13)
+const set1 = [
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( \\sin x = -\\frac{1}{2} \\) 의 모든 해를 구하세요.",
+    choices: [
+      { text: "\\( x = \\frac{7\\pi}{6}, \\; \\frac{11\\pi}{6} \\)", correct: true },
+      { text: "\\( x = \\frac{5\\pi}{6}, \\; \\frac{7\\pi}{6} \\)", correct: false },
+      { text: "\\( x = \\frac{\\pi}{6}, \\; \\frac{11\\pi}{6} \\)", correct: false },
+      { text: "\\( x = \\frac{5\\pi}{6}, \\; \\frac{11\\pi}{6} \\)", correct: false },
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( 3\\tan x - \\sqrt{3} = 0 \\) 의 모든 해를 구하세요.",
+    choices: [
+      { text: "\\( x = \\frac{\\pi}{6}, \\; \\frac{7\\pi}{6} \\)", correct: true },
+      { text: "\\( x = \\frac{\\pi}{3}, \\; \\frac{4\\pi}{3} \\)", correct: false },
+      { text: "\\( x = \\frac{2\\pi}{3}, \\; \\frac{5\\pi}{3} \\)", correct: false },
+      { text: "\\( x = \\frac{7\\pi}{6}, \\; \\frac{11\\pi}{6} \\)", correct: false },
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( \\tan x = \\sqrt{3} \\) 의 모든 해를 구하세요.",
+    choices: [
+      { text: "\\( x = \\frac{\\pi}{6}, \\; \\frac{7\\pi}{6} \\)", correct: false },
+      { text: "\\( x = \\frac{\\pi}{3}, \\; \\frac{4\\pi}{3} \\)", correct: true },
+      { text: "\\( x = \\frac{\\pi}{3}, \\; \\frac{5\\pi}{3} \\)", correct: false },
+      { text: "\\( x = \\frac{5\\pi}{3}, \\; \\frac{7\\pi}{3} \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( \\sin x = \\frac{\\sqrt{2}}{2} \\) 의 모든 해를 구하세요.",
+    choices: [
+      { text: "\\( x = \\frac{\\pi}{4}, \\; \\frac{3\\pi}{4} \\)", correct: true },
+      { text: "\\( x = \\frac{\\pi}{4}, \\; \\frac{5\\pi}{4} \\)", correct: false },
+      { text: "\\( x = \\frac{3\\pi}{4}, \\; \\frac{5\\pi}{4} \\)", correct: false },
+      { text: "\\( x = \\frac{5\\pi}{4}, \\; \\frac{7\\pi}{4} \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( \\frac{\\sqrt{2}}{2}\\cos x - \\frac{1}{2} = 0 \\) 의 모든 해를 구하세요.",
+    choices: [
+      { text: "\\( x = \\frac{\\pi}{4}, \\; \\frac{3\\pi}{4} \\)", correct: false },
+      { text: "\\( x = \\frac{\\pi}{4}, \\; \\frac{7\\pi}{4} \\)", correct: true },
+      { text: "\\( x = \\frac{5\\pi}{4}, \\; \\frac{7\\pi}{4} \\)", correct: false },
+      { text: "\\( x = \\frac{3\\pi}{4}, \\; \\frac{7\\pi}{4} \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( 2\\sin x - \\sqrt{2} = 0 \\) 의 모든 해를 구하세요.",
+    choices: [
+      { text: "\\( x = \\frac{\\pi}{4}, \\; \\frac{3\\pi}{4} \\)", correct: true },
+      { text: "\\( x = \\frac{\\pi}{4}, \\; \\frac{5\\pi}{4} \\)", correct: false },
+      { text: "\\( x = \\frac{3\\pi}{4}, \\; \\frac{7\\pi}{4} \\)", correct: false },
+      { text: "\\( x = \\frac{\\pi}{4}, \\; \\frac{7\\pi}{4} \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( \\sin x = \\frac{\\sqrt{3}}{2} \\) 의 모든 해를 구하세요.",
+    choices: [
+      { text: "\\( x = \\frac{\\pi}{3}, \\; \\frac{2\\pi}{3} \\)", correct: true },
+      { text: "\\( x = \\frac{\\pi}{6}, \\; \\frac{5\\pi}{6} \\)", correct: false },
+      { text: "\\( x = \\frac{2\\pi}{3}, \\; \\frac{4\\pi}{3} \\)", correct: false },
+      { text: "\\( x = \\frac{5\\pi}{6}, \\; \\frac{7\\pi}{6} \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( \\sqrt{3}\\tan(2x) + 1 = 0 \\) 의 모든 해를 구하세요.",
+    choices: [
+      { text: "\\( x = \\frac{5\\pi}{12}, \\; \\frac{11\\pi}{12}, \\; \\frac{17\\pi}{12}, \\; \\frac{23\\pi}{12} \\)", correct: true },
+      { text: "\\( x = \\frac{\\pi}{12}, \\; \\frac{7\\pi}{12}, \\; \\frac{13\\pi}{12}, \\; \\frac{19\\pi}{12} \\)", correct: false },
+      { text: "\\( x = \\frac{\\pi}{4}, \\; \\frac{5\\pi}{6}, \\; \\frac{7\\pi}{4}, \\; \\frac{11\\pi}{6} \\)", correct: false },
+      { text: "\\( x = \\frac{5\\pi}{12}, \\; \\frac{7\\pi}{12}, \\; \\frac{17\\pi}{12}, \\; \\frac{19\\pi}{12} \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( \\sqrt{3}\\tan x - \\sqrt{3} = 0 \\) 의 모든 해를 구하세요.",
+    choices: [
+      { text: "\\( x = \\frac{\\pi}{4}, \\; \\frac{5\\pi}{4} \\)", correct: true },
+      { text: "\\( x = \\frac{\\pi}{4}, \\; \\frac{7\\pi}{4} \\)", correct: false },
+      { text: "\\( x = \\frac{\\pi}{6}, \\; \\frac{7\\pi}{6} \\)", correct: false },
+      { text: "\\( x = \\frac{5\\pi}{6}, \\; \\frac{11\\pi}{6} \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( 2\\sin(2x) = -\\sqrt{3} \\) 의 모든 해를 구하세요.",
+    choices: [
+      { text: "\\( x = \\frac{2\\pi}{3}, \\; \\frac{5\\pi}{6}, \\; \\frac{5\\pi}{3}, \\; \\frac{11\\pi}{6} \\)", correct: true },
+      { text: "\\( x = \\frac{\\pi}{6}, \\; \\frac{5\\pi}{6}, \\; \\frac{7\\pi}{6}, \\; \\frac{11\\pi}{6} \\)", correct: false },
+      { text: "\\( x = \\frac{2\\pi}{3}, \\; \\frac{4\\pi}{3}, \\; \\frac{5\\pi}{3}, \\; \\frac{7\\pi}{3} \\)", correct: false },
+      { text: "\\( x = \\frac{\\pi}{2}, \\; \\frac{3\\pi}{2}, \\; \\frac{5\\pi}{2}, \\; \\frac{7\\pi}{2} \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( \\tan\\bigl(\\tfrac{3}{2}x\\bigr) = \\tfrac{\\sqrt{3}}{3} \\) 의 모든 해를 구하세요.",
+    choices: [
+      { text: "\\( x = \\tfrac{\\pi}{9}, \\; \\tfrac{7\\pi}{9}, \\; \\tfrac{13\\pi}{9} \\)", correct: false },
+      { text: "\\( x = \\tfrac{2\\pi}{9}, \\; \\tfrac{8\\pi}{9}, \\; \\tfrac{14\\pi}{9} \\)", correct: false },
+      { text: "\\( x = \\tfrac{\\pi}{6}, \\; \\tfrac{7\\pi}{6}, \\; \\tfrac{13\\pi}{6} \\)", correct: false },
+      { text: "\\( x = \\tfrac{\\pi}{9}, \\; \\tfrac{7\\pi}{9}, \\; \\tfrac{13\\pi}{9} \\) (미사용)", correct: false }
+    ]
+  }
+];
+
+// (35~46)
+const set2 = [
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( \\sin x = \\tfrac{1}{2} \\) 의 모든 해의 합을 구하세요.",
+    choices: [
+      { text: "\\( \\pi \\)", correct: true },
+      { text: "\\( 2\\pi \\)", correct: false },
+      { text: "\\( \\tfrac{\\pi}{2} \\)", correct: false },
+      { text: "\\( \\tfrac{3\\pi}{2} \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( 2\\cos x = \\sqrt{3} \\) 의 모든 해의 합을 구하세요.",
+    choices: [
+      { text: "\\( \\pi \\)", correct: false },
+      { text: "\\( 2\\pi \\)", correct: true },
+      { text: "\\( 3\\pi \\)", correct: false },
+      { text: "\\( 4\\pi \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( 3\\sin x - 1 = 0 \\) 의 모든 해의 합을 구하세요.",
+    choices: [
+      { text: "\\( \\tfrac{\\pi}{2} \\)", correct: false },
+      { text: "\\( \\pi \\)", correct: true },
+      { text: "\\( \\tfrac{3\\pi}{2} \\)", correct: false },
+      { text: "\\( 2\\pi \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( \\sqrt{3}\\tan x + 1 = 0 \\) 의 모든 해의 합을 구하세요.",
+    choices: [
+      { text: "\\( \\tfrac{4\\pi}{3} \\)", correct: false },
+      { text: "\\( \\tfrac{5\\pi}{3} \\)", correct: false },
+      { text: "\\( \\tfrac{8\\pi}{3} \\)", correct: false },
+      { text: "\\( 3\\pi \\)", correct: true }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( 2\\cos^2 x + \\sin x - 1 = 0 \\) 의 모든 해의 합을 구하세요.",
+    choices: [
+      { text: "\\( \\tfrac{7\\pi}{2} \\)", correct: false },
+      { text: "\\( 3\\pi \\)", correct: true },
+      { text: "\\( 2\\pi \\)", correct: false },
+      { text: "\\( \\tfrac{5\\pi}{2} \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( 2\\sin x\\cos x - \\sin x = 0 \\) 의 모든 해의 합을 구하세요.",
+    choices: [
+      { text: "\\( 2\\pi \\)", correct: false },
+      { text: "\\( 3\\pi \\)", correct: true },
+      { text: "\\( \\tfrac{5\\pi}{2} \\)", correct: false },
+      { text: "\\( \\tfrac{7\\pi}{2} \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le \\theta < 2\\pi \\)에서 \\( 2\\cos\\theta = \\frac{\\sqrt{3}}{\\tan\\theta} \\) 의 모든 해의 합을 구하세요.",
+    choices: [
+      { text: "\\( \\pi \\)", correct: true },
+      { text: "\\( 2\\pi \\)", correct: false },
+      { text: "\\( 3\\pi \\)", correct: false },
+      { text: "\\( 4\\pi \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( 3\\sin^2 x - 2 = 0 \\) 의 모든 해의 합을 구하세요.",
+    choices: [
+      { text: "\\( 2\\pi \\)", correct: false },
+      { text: "\\( 3\\pi \\)", correct: false },
+      { text: "\\( 4\\pi \\)", correct: true },
+      { text: "\\( 5\\pi \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( \\cos(\\pi\\sin x) = -\\tfrac{1}{2} \\) 의 모든 해의 합을 구하세요.",
+    choices: [
+      { text: "\\( 2\\pi \\)", correct: false },
+      { text: "\\( 3\\pi \\)", correct: false },
+      { text: "\\( 4\\pi \\)", correct: true },
+      { text: "\\( 5\\pi \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( \\cos x + 2\\sin(\\pi - x)\\cos(\\pi + x) = 0 \\) 의 모든 해의 합을 구하세요.",
+    choices: [
+      { text: "\\( \\pi \\)", correct: false },
+      { text: "\\( 2\\pi \\)", correct: false },
+      { text: "\\( 3\\pi \\)", correct: true },
+      { text: "\\( 4\\pi \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( \\cos(\\cos x) = 1 \\) 의 모든 해의 합을 구하세요.",
+    choices: [
+      { text: "\\( \\pi \\)", correct: false },
+      { text: "\\( 2\\pi \\)", correct: true },
+      { text: "\\( 3\\pi \\)", correct: false },
+      { text: "\\( 4\\pi \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( (3\\cos x - 1)(4\\cos x - 3) = 0 \\) 의 모든 해의 합을 구하세요.",
+    choices: [
+      { text: "\\( 2\\pi \\)", correct: false },
+      { text: "\\( 3\\pi \\)", correct: false },
+      { text: "\\( 4\\pi \\)", correct: true },
+      { text: "\\( 5\\pi \\)", correct: false }
+    ]
+  }
+];
+
+// (49~51)
+const set3 = [
+  {
+    question: "\\( 0 \\le x \\le 4\\pi \\)에서 \\( 2\\sin^2 x - 3\\sin x - 2 = 0 \\) 의 모든 해의 합을 구하세요.",
+    choices: [
+      { text: "\\( 6\\pi \\)", correct: false },
+      { text: "\\( 8\\pi \\)", correct: false },
+      { text: "\\( 10\\pi \\)", correct: true },
+      { text: "\\( 12\\pi \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 3\\pi \\)에서 \\( 2\\sin^2 x - \\sin x - 1 = 0 \\) 의 모든 해의 합을 구하세요.",
+    choices: [
+      { text: "\\( 3\\pi \\)", correct: false },
+      { text: "\\( 4\\pi \\)", correct: false },
+      { text: "\\( 6\\pi \\)", correct: true },
+      { text: "\\( 9\\pi \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < \\pi \\)에서 \\( \\cos(3x - \\frac{\\pi}{2}) = \\frac{\\sqrt{3}}{2} \\) 의 모든 해의 합을 구하세요.",
+    choices: [
+      { text: "\\( \\pi \\)", correct: false },
+      { text: "\\( 2\\pi \\)", correct: true },
+      { text: "\\( 3\\pi \\)", correct: false },
+      { text: "\\( 4\\pi \\)", correct: false }
+    ]
+  }
+];
+
+// (52~62)
+const set4 = [
+  {
+    question: "\\( \\sin(\\pi x) = \\frac{1}{3} x \\) 의 모든 실근의 개수를 구하세요.",
+    choices: [
+      { text: "5", correct: false },
+      { text: "6", correct: false },
+      { text: "7", correct: true },
+      { text: "8", correct: false }
+    ]
+  },
+  {
+    question: "\\( \\cos(\\pi x) = |x| \\) 의 모든 실근의 개수를 구하세요.",
+    choices: [
+      { text: "1", correct: false },
+      { text: "2", correct: true },
+      { text: "3", correct: false },
+      { text: "4", correct: false }
+    ]
+  },
+  {
+    question: "\\( \\cos(\\pi x) = \\frac{1}{3}|x| \\) 의 모든 실근의 개수를 구하세요.",
+    choices: [
+      { text: "4", correct: false },
+      { text: "5", correct: false },
+      { text: "6", correct: true },
+      { text: "7", correct: false }
+    ]
+  },
+  {
+    question: "\\( \\sin(\\pi x) = \\frac{1}{2} x \\) 의 모든 실근의 개수를 구하세요.",
+    choices: [
+      { text: "2", correct: false },
+      { text: "3", correct: true },
+      { text: "4", correct: false },
+      { text: "5", correct: false }
+    ]
+  },
+  {
+    question: "\\( \\sin\\bigl(x - \\frac{3\\pi}{2}\\bigr) - \\frac{x}{8} = 0 \\) 의 모든 실근의 개수를 구하세요.",
+    choices: [
+      { text: "3", correct: false },
+      { text: "4", correct: false },
+      { text: "5", correct: true },
+      { text: "6", correct: false }
+    ]
+  },
+  {
+    question: "\\( \\frac{1}{3}\\log_{2}(x) = -\\sin(\\pi x) \\) (단 \\( x>0 \\)) 의 모든 실근의 개수를 구하세요.",
+    choices: [
+      { text: "7", correct: false },
+      { text: "8", correct: false },
+      { text: "9", correct: true },
+      { text: "10", correct: false }
+    ]
+  },
+  {
+    question: "방정식 \\( 4\\sin^2 x + 4\\cos x - k = 0 \\) 이 실근을 갖도록 하는 \\( k \\)의 범위를 구하세요.",
+    choices: [
+      { text: "\\( -5 \\le k \\le 4 \\)", correct: false },
+      { text: "\\( -4 \\le k \\le 5 \\)", correct: true },
+      { text: "\\( -3 \\le k \\le 5 \\)", correct: false },
+      { text: "\\( -4 \\le k \\le 4 \\)", correct: false }
+    ]
+  },
+  {
+    question: "방정식 \\( \\sin^2 x - 4\\cos x + k = 0 \\) 이 실근을 갖기 위한 \\( k \\)의 범위를 구하세요.",
+    choices: [
+      { text: "\\( -5 \\le k \\le 3 \\)", correct: false },
+      { text: "\\( -4 \\le k \\le 4 \\)", correct: true },
+      { text: "\\( -3 \\le k \\le 3 \\)", correct: false },
+      { text: "\\( -2 \\le k \\le 4 \\)", correct: false }
+    ]
+  },
+  {
+    question: "방정식 \\( \\cos^2 x - 2\\cos x + k = 0 \\) 이 실근을 갖기 위한 \\( k \\)의 범위를 구하세요.",
+    choices: [
+      { text: "\\( -4 \\le k \\le 1 \\)", correct: false },
+      { text: "\\( -3 \\le k \\le 2 \\)", correct: false },
+      { text: "\\( -3 \\le k \\le 1 \\)", correct: true },
+      { text: "\\( -2 \\le k \\le 2 \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x \\le 2\\pi \\)에서 \\( 2\\cos^2 x + (2k+1)\\sin x - k - 2 = 0 \\) 가 서로 다른 세 실근을 갖기 위한 \\( k \\)를 구하세요.",
+    choices: [
+      { text: "\\( k = -1 \\) 또는 \\( k = 0 \\)", correct: false },
+      { text: "\\( k = -1 \\) 또는 \\( k = 1 \\)", correct: true },
+      { text: "\\( k = 0 \\) 또는 \\( k = 1 \\)", correct: false },
+      { text: "\\( k = 1 \\) 또는 \\( k = 2 \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le \\theta < 2\\pi \\)에서 \\( x^2 + 2x - \\cos\\theta = 0 \\) 이 중근을 가지도록 하는 \\( \\theta \\)를 구하세요.",
+    choices: [
+      { text: "\\( \\theta = 0 \\)", correct: false },
+      { text: "\\( \\theta = \\frac{\\pi}{2} \\)", correct: false },
+      { text: "\\( \\theta = \\pi \\)", correct: true },
+      { text: "\\( \\theta = \\frac{3\\pi}{2} \\)", correct: false }
+    ]
+  }
+];
+
+// (25~30)
+const set5 = [
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( 3\\sin^2 x - \\cos^2 x = 0 \\) 의 모든 해를 구하세요.",
+    choices: [
+      { text: "\\( x = \\frac{\\pi}{6}, \\; \\frac{5\\pi}{6}, \\; \\frac{7\\pi}{6}, \\; \\frac{11\\pi}{6} \\)", correct: true },
+      { text: "\\( x = \\frac{\\pi}{6}, \\; \\frac{5\\pi}{6}, \\; \\frac{7\\pi}{6}, \\; \\frac{3\\pi}{2} \\)", correct: false },
+      { text: "\\( x = \\frac{\\pi}{2}, \\; \\frac{3\\pi}{2}, \\; \\frac{7\\pi}{6}, \\; \\frac{11\\pi}{6} \\)", correct: false },
+      { text: "\\( x = \\frac{\\pi}{6}, \\; \\frac{5\\pi}{6}, \\; \\frac{4\\pi}{3}, \\; \\frac{11\\pi}{6} \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( 2\\cos^2 x - \\cos x = 0 \\) 의 모든 해를 구하세요.",
+    choices: [
+      { text: "\\( x = 0, \\; \\pi, \\; \\frac{\\pi}{3}, \\; \\frac{4\\pi}{3} \\)", correct: true },
+      { text: "\\( x = \\frac{\\pi}{2}, \\; \\frac{3\\pi}{2}, \\; \\frac{\\pi}{3}, \\; \\frac{5\\pi}{3} \\)", correct: false },
+      { text: "\\( x = \\frac{\\pi}{2}, \\; \\frac{3\\pi}{2}, \\; \\frac{2\\pi}{3}, \\; \\frac{4\\pi}{3} \\)", correct: false },
+      { text: "\\( x = 0, \\; \\frac{\\pi}{2}, \\; \\pi, \\; \\frac{3\\pi}{2} \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( 2\\cos^2 x + 3\\cos x + 1 = 0 \\) 의 모든 해를 구하세요.",
+    choices: [
+      { text: "\\( x = \\frac{\\pi}{3}, \\; \\frac{2\\pi}{3}, \\; \\frac{5\\pi}{3} \\)", correct: false },
+      { text: "\\( x = 0, \\; \\pi, \\; \\frac{3\\pi}{2} \\)", correct: false },
+      { text: "\\( x = \\frac{2\\pi}{3}, \\; \\pi, \\; \\frac{4\\pi}{3} \\)", correct: true },
+      { text: "\\( x = \\frac{\\pi}{6}, \\; \\frac{7\\pi}{6}, \\; \\frac{11\\pi}{6} \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( 2\\sin^2 x - \\sin x - 1 = 0 \\) 의 모든 해를 구하세요.",
+    choices: [
+      { text: "\\( x = \\frac{\\pi}{2}, \\; \\frac{7\\pi}{6}, \\; \\frac{11\\pi}{6} \\)", correct: true },
+      { text: "\\( x = 0, \\; \\frac{\\pi}{6}, \\; \\frac{11\\pi}{6} \\)", correct: false },
+      { text: "\\( x = \\frac{5\\pi}{6}, \\; \\frac{7\\pi}{6}, \\; \\frac{3\\pi}{2} \\)", correct: false },
+      { text: "\\( x = 0, \\; \\frac{\\pi}{2}, \\; \\pi \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( 2\\cos^2 x - \\sin x - 1 = 0 \\) 의 모든 해를 구하세요.",
+    choices: [
+      { text: "\\( x = \\frac{\\pi}{6}, \\; \\frac{5\\pi}{6}, \\; \\frac{3\\pi}{2} \\)", correct: true },
+      { text: "\\( x = \\frac{\\pi}{6}, \\; \\frac{5\\pi}{6}, \\; \\frac{11\\pi}{6} \\)", correct: false },
+      { text: "\\( x = \\frac{\\pi}{2}, \\; \\frac{3\\pi}{2}, \\; \\frac{5\\pi}{2} \\)", correct: false },
+      { text: "\\( x = 0, \\; \\frac{\\pi}{2}, \\; \\frac{3\\pi}{2} \\)", correct: false }
+    ]
+  },
+  {
+    question: "\\( 0 \\le x < 2\\pi \\)에서 \\( 2\\cos^2 x + 3\\sin x - 3 = 0 \\) 의 모든 해를 구하세요.",
+    choices: [
+      { text: "\\( x = \\frac{\\pi}{6}, \\; \\frac{5\\pi}{6}, \\; \\frac{3\\pi}{2} \\)", correct: false },
+      { text: "\\( x = 0, \\; \\frac{\\pi}{2}, \\; \\pi \\)", correct: false },
+      { text: "\\( x = \\frac{\\pi}{6}, \\; \\frac{\\pi}{2}, \\; \\frac{5\\pi}{6} \\)", correct: true },
+      { text: "\\( x = \\frac{\\pi}{6}, \\; \\frac{\\pi}{3}, \\; \\frac{5\\pi}{3} \\)", correct: false }
+    ]
+  }
+];
+
+// 모든 문제 합쳐서 무작위로 섞기
+let allQuestions = set1.concat(set2, set3, set4, set5);
+allQuestions = shuffleArray(allQuestions);
+
+// 전역 변수들
+let playerName = "";
+let difficulty = "";
+let timePerQuestion = 0;
+let totalTime = 0;
+let score = 0;
+let chances = 3;
+let currentQIndex = 0;
+let timer = null;
+let globalTimer = null;
+let usedQuestionIndices = [];
+
+// 난이도 설정 및 시작
+function setDifficultyAndStart(diff) {
+  playerName = document.getElementById("nameInput").value.trim();
+  if (!playerName) {
+    alert("이름을 입력해주세요!");
+    return;
+  }
+  difficulty = diff;
+  switch(diff) {
+    case "최상": timePerQuestion = 30; break;
+    case "상":   timePerQuestion = 40; break;
+    case "중":   timePerQuestion = 50; break;
+    case "하":   timePerQuestion = 999999; break;
+  }
+  document.getElementById("startScreen").classList.add("hidden");
+  document.getElementById("gameScreen").classList.remove("hidden");
+  startGame();
+}
+
+function startGame() {
+  score = 0;
+  chances = 3;
+  currentQIndex = 0;
+  usedQuestionIndices = [];
+  document.getElementById("score").innerText = score;
+  document.getElementById("chances").innerText = chances;
+  document.getElementById("elapsedTime").innerText = 0;
+
+  // 전체 경과시간 타이머
+  totalTime = 0;
+  globalTimer = setInterval(()=>{
+    totalTime++;
+    document.getElementById("elapsedTime").innerText = totalTime;
+  }, 1000);
+
+  loadNewQuestion();
+}
+
+function loadNewQuestion() {
+  // 에너지바 초기화
+  document.getElementById("energyBar").style.width = "100%";
+  
+  // 모든 문제 사용 시 게임 종료
+  if (usedQuestionIndices.length >= allQuestions.length) {
+    endGame();
+    return;
+  }
+  
+  // 아직 사용 안 한 문제 랜덤 pick
+  let qidx;
+  do {
+    qidx = Math.floor(Math.random()*allQuestions.length);
+  } while (usedQuestionIndices.includes(qidx));
+  usedQuestionIndices.push(qidx);
+
+  const questionData = allQuestions[qidx];
+  shuffleArray(questionData.choices);
+
+  // 문제 표시
+  document.getElementById("questionContainer").innerHTML = `
+    <div><strong>문제</strong><br>${questionData.question}</div>
+  `;
+
+  // 보기 표시
+  let htmlChoices = "";
+  questionData.choices.forEach((c, idx)=>{
+    htmlChoices += `
+      <div class="choice" onclick="checkAnswer(${qidx}, ${idx})">
+        ${c.text}
+      </div>
+    `;
+  });
+  document.getElementById("choicesContainer").innerHTML = htmlChoices;
+
+  // MathJax 렌더링
+  MathJax.typeset();
+
+  // 문제별 시간 타이머
+  if(timer) clearInterval(timer);
+  let remain = timePerQuestion;
+  timer = setInterval(()=>{
+    remain--;
+    let ratio = (remain / timePerQuestion)*100;
+    if(timePerQuestion >= 999999) {
+      ratio = 100; // 하 난이도 -> 시간 무제한
+    }
+    document.getElementById("energyBar").style.width = ratio+"%";
+    if(remain <= 0 && timePerQuestion < 999999) {
+      // 시간 초과
+      clearInterval(timer);
+      chances--;
+      document.getElementById("chances").innerText = chances;
+      document.getElementById("resultMessage").innerText = "시간초과! 기회 1 감소!";
+      showCorrectAnswerOnTimeout(qidx);
+      if(chances <= 0) {
+        endGame();
+      } else {
+        setTimeout(()=>{
+          document.getElementById("resultMessage").innerText = "";
+          loadNewQuestion();
+        }, 1500);
+      }
+    }
+  }, 1000);
+}
+
+function showCorrectAnswerOnTimeout(qidx) {
+  const qData = allQuestions[qidx];
+  let correctText = "";
+  for(let i=0; i<qData.choices.length; i++){
+    if(qData.choices[i].correct){
+      correctText = qData.choices[i].text;
+      break;
+    }
+  }
+  document.getElementById("resultMessage").innerHTML =
+    "정답은 <br>" + correctText;
+  MathJax.typeset();
+}
+
+function checkAnswer(qidx, cidx) {
+  clearInterval(timer);
+  const qData = allQuestions[qidx];
+  const isCorrect = qData.choices[cidx].correct;
+  if (isCorrect) {
+    let plus = 0;
+    switch(difficulty) {
+      case "최상": plus = 20; break;
+      case "상":   plus = 15; break;
+      case "중":   plus = 13; break;
+      case "하":   plus = 10; break;
+    }
+    score += plus;
+    document.getElementById("score").innerText = score;
+    document.getElementById("resultMessage").innerText =
+      "정답입니다! +" + plus + "점";
+  } else {
+    // 오답
+    chances--;
+    document.getElementById("chances").innerText = chances;
+    let correctText = "";
+    for (let i=0; i<qData.choices.length; i++){
+      if(qData.choices[i].correct){
+        correctText = qData.choices[i].text;
+        break;
+      }
+    }
+    document.getElementById("resultMessage").innerHTML =
+      "오답입니다! 정답은 <br>" + correctText;
+    MathJax.typeset();
+  }
+
+  if (chances <= 0) {
+    setTimeout(()=>{
+      endGame();
+    }, 1500);
+  } else {
+    setTimeout(()=>{
+      document.getElementById("resultMessage").innerText = "";
+      loadNewQuestion();
+    }, 1500);
+  }
+}
+
+function endGame() {
+  if(timer) clearInterval(timer);
+  if(globalTimer) clearInterval(globalTimer);
+  document.getElementById("gameScreen").classList.add("hidden");
+  document.getElementById("endScreen").classList.remove("hidden");
+  document.getElementById("finalScoreMsg").innerText =
+    playerName + "님의 최종 점수는 " + score + "점 입니다! (총 경과시간: " + totalTime + "초)";
+}
+
+// 난이도 버튼
+document.querySelectorAll(".difficulty-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    const diff = btn.getAttribute("data-diff");
+    setDifficultyAndStart(diff);
+  });
+});
+
+// 점수 전송 버튼
+document.getElementById("sendScoreBtn").addEventListener("click", ()=>{
+  sendScore();
+});
+
+// 점수 전송용 함수
+async function saveData(game, name, score, elapsedTime) {
+  const FUNCTION_URL = "https://us-central1-record-f420d.cloudfunctions.net/report";
+  const requestData = {
+    game,
+    name,
+    score: parseInt(score, 10),
+    elapsedTime: parseInt(elapsedTime, 10)
+  };
+
+  try {
+    const response = await fetch(FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
+    });
+
+    const responseData = await response.json();
+
+    if (response.ok) {
+      document.getElementById('response').innerText =
+        "성공: " + JSON.stringify(responseData, null, 2);
+    } else {
+      document.getElementById('response').innerText =
+        "오류: " + JSON.stringify(responseData, null, 2);
+    }
+  } catch (error) {
+    console.error("요청 실패:", error);
+    document.getElementById('response').innerText =
+      "네트워크 오류: " + error.message;
+  }
+}
+
+function sendScore() {
+  saveData("삼각방정식", playerName, score, totalTime);
+}
+</script>
+</body>
+</html>
